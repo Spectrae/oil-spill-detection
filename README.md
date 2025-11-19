@@ -37,7 +37,7 @@ Oil_Spill_Project/
 
 ### **1. Oil Spill Images (Satellite SAR Data)**
 
-**Source:** [https://www.kaggle.com/competitions/airbus-ship-detection/data]([https://www.kaggle.com/competitions/airbus-ship-detection/data](https://www.kaggle.com/datasets/nabilsherif/oil-spill))
+**Source:** [https://www.kaggle.com/competitions/airbus-ship-detection/data]([https://www.kaggle.com/competitions/airbus-ship-detection/data](https://www.kaggle.com/datasets/nabilsherif/oil-spill)
 **Action:**
 
 * Download → Unzip → place into:
