@@ -247,12 +247,12 @@ Keep all large files out of the repository and add them to `.gitignore`.
 
 ## Contributors
 
-| Name             | Role                    | GitHub                                                         |
-| ---------------- | ----------------------- | -------------------------------------------------------------- |
-| **Rick Mondal**  | Backend Developer       | [https://github.com/Spectrae](https://github.com/Spectrae)     |
-| **Aneesh Ghosh** | Research / Model Tuning | [https://github.com/levianeesh](https://github.com/levianeesh) |
-| **Ritika Kundu** | Testing & Documentation | https://github.com/ritikakundu)                                |
-| **Shradha Gupta**| Data Cleaning / AIS     | [https://github.com/sgxlzel](https://github.com/sgxlzel)       |
+| Name             | Role                    | GitHub                                                           |
+| ---------------- | ----------------------- | -----------------------------------------------------------------|
+| **Rick Mondal**  | Backend Developer       | [https://github.com/Spectrae](https://github.com/Spectrae)       |
+| **Aneesh Ghosh** | Research / Model Tuning | [https://github.com/levianeesh](https://github.com/levianeesh)   |
+| **Ritika Kundu** | Testing & Documentation | [https://github.com/ritikakundu](https://github.com/ritikakundu) |
+| **Shradha Gupta**| Data Cleaning / AIS     | [https://github.com/sgxlzel](https://github.com/sgxlzel)         |
 
 (Feel free to add new contributors & GitHub links.)
 
