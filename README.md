@@ -251,7 +251,7 @@ Keep all large files out of the repository and add them to `.gitignore`.
 | ---------------- | ----------------------- | -------------------------------------------------------------- |
 | **Rick Mondal**  | Backend Developer       | [https://github.com/Spectrae](https://github.com/Spectrae)     |
 | **Aneesh Ghosh** | Research / Model Tuning | [https://github.com/levianeesh](https://github.com/levianeesh) |
-| Contributor 3    | Data Cleaning / AIS     | *(add link)*                                                   |
+| **Shradha Gupta**| Data Cleaning / AIS     | [https://github.com/sgxlzel](https://github.com/sgxlzel)       |                                          |
 | Contributor 4    | Testing & Documentation | *(add link)*                                                   |
 
 (Feel free to add new contributors & GitHub links.)
