@@ -1,45 +1,12 @@
-"""
--------------------------------------------------------------------------------
-OIL SPILL FORENSIC TOOL - Frontend Application
--------------------------------------------------------------------------------
-Project Owner: Rick Mondal
-Description:   A single-file Streamlit application for Oil Spill Detection using 
-               Deep Learning (U-Net/DeepLabV3) and AIS Vessel Anomaly detection.
-
-REQUIREMENTS:
--------------
-streamlit>=1.30.0
-tensorflow>=2.10.0
-opencv-python-headless
-numpy
-pandas
-Pillow
-matplotlib
-
-HOW TO RUN:
------------
-1. Ensure your model is at: 'saved_models/unet_oil_spill.h5'
-2. Ensure you have test images in: 'data/test/images'
-3. Run command: streamlit run app.py
-
-CHANGELOG:
-----------
-- Performance: Removed artificial UX delays for maximum speed.
-- Performance: Added caching for AIS CSV data.
-- Fix: "Demo Mode" loads REAL images from 'data/test/images'.
-- Style: Light Mode + Glassmorphism applied.
--------------------------------------------------------------------------------
-"""
-
 import streamlit as st
 import numpy as np
 import cv2
 import pandas as pd
 import os
 import random
-import time
 import traceback
 from PIL import Image
+import math # NEW: Required for haversine distance calculation
 
 # --- CONFIGURATION & CONSTANTS ---
 PAGE_TITLE = "Oil Spill Forensic System"
@@ -66,7 +33,7 @@ st.set_page_config(
 # Embed all CSS for Single-File Portability
 st.markdown("""
 <style>
-    /* 1. GLOBAL THEME (Light Mode + Gradient) */
+    /* 1. GLOBAL THEME */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     
     html, body, [class*="css"] {
@@ -74,18 +41,28 @@ st.markdown("""
     }
     
     .stApp {
+        /* Kept the background gradient */
         background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
         background-attachment: fixed;
     }
 
     /* 2. HIDE STREAMLIT CHROME */
+    header[data-testid="stHeader"] > div:first-child {
+        visibility: hidden;
+        height: 0px;
+        z-index: -10;
+    }
+    
     header[data-testid="stHeader"] {
+        background-color: transparent;
+        height: 2.875rem;
+    }
+
+    footer {
         visibility: hidden;
         height: 0px;
     }
-    footer {
-        visibility: hidden;
-    }
+    
     .block-container {
         padding-top: 2rem;
         padding-bottom: 5rem;
@@ -175,13 +152,13 @@ st.markdown("""
 def load_backend_model(path):
     """
     Loads the trained Keras model.
-    Uses st.cache_resource to avoid reloading on every interaction.
     """
     try:
         if not os.path.exists(path):
             return None, "Model file not found."
         
-        # Lazy import to prevent startup lag
+        # NOTE: tensorflow is only imported here, making the main script runnable 
+        # even without TF installed, though inference will fail gracefully.
         import tensorflow as tf
         model = tf.keras.models.load_model(path)
         return model, None
@@ -190,18 +167,17 @@ def load_backend_model(path):
 
 def run_inference(model, image_input, threshold):
     """
-    Replicates 'predict_spill' logic from 3_Final_Inference.ipynb
+    Performs image preprocessing, inference, and thresholding.
     """
     try:
         # Preprocessing
         img_resized = cv2.resize(image_input, (256, 256))
-        # Normalize (Crucial step from notebook)
         img_tensor = np.expand_dims(img_resized, axis=0).astype(np.float32) / 255.0
         
         # Inference
         raw_pred = model.predict(img_tensor, verbose=0)[0]
         
-        # Handle dimensions (DeepLab vs UNet outputs)
+        # Handle dimensions
         if raw_pred.ndim == 3 and raw_pred.shape[2] == 1:
             raw_pred_2d = np.squeeze(raw_pred, axis=-1)
         else:
@@ -216,7 +192,8 @@ def run_inference(model, image_input, threshold):
 
 def analyze_damage(mask, pixel_res_m2=100):
     """
-    Replicates 'assess_damage' from 3_Final_Inference.ipynb
+    Calculates spill area and assigns a severity level.
+    Assumes 10m x 10m = 100 m^2 per pixel (Sentinel-1).
     """
     oil_pixels = np.count_nonzero(mask)
     total_area_m2 = oil_pixels * pixel_res_m2
@@ -229,15 +206,15 @@ def analyze_damage(mask, pixel_res_m2=100):
     if total_area_km2 > 1.0:
         severity = "CRITICAL"
         css_class = "sev-critical"
-        msg = f"🚨 CRITICAL SEVERITY — Cleanup required ({total_area_km2:.2f} km²)"
+        msg = f"🚨 **CRITICAL** SEVERITY — Cleanup required ({total_area_km2:.2f} km²)"
     elif total_area_km2 > 0.1:
         severity = "HIGH"
         css_class = "sev-high"
-        msg = f"⚠️ HIGH SEVERITY — Booms advised ({total_area_km2:.2f} km²)"
+        msg = f"⚠️ **HIGH** SEVERITY — Booms advised ({total_area_km2:.2f} km²)"
     elif total_area_km2 > 0.0:
         severity = "MODERATE"
         css_class = "sev-moderate"
-        msg = f"ℹ️ MODERATE SEVERITY — Minor leakage ({total_area_km2:.4f} km²)"
+        msg = f"ℹ️ **MODERATE** SEVERITY — Minor leakage ({total_area_km2:.4f} km²)"
         
     return {
         "pixels": oil_pixels,
@@ -250,8 +227,7 @@ def analyze_damage(mask, pixel_res_m2=100):
 @st.cache_data
 def load_ais_data():
     """
-    OPTIMIZATION: Loads and caches the AIS CSV file.
-    This prevents re-reading the file from disk on every run.
+    Loads and caches the AIS CSV file for fast access.
     """
     if os.path.exists(AIS_DATA_PATH):
         try:
@@ -262,14 +238,13 @@ def load_ais_data():
 
 def get_ais_anomalies(lat, lon, search_radius=2.0):
     """
-    Replicates 'detect_anomaly' logic.
-    Uses cached data for speed.
+    Detects nearby vessels based on a simulated location.
     """
     try:
         df = load_ais_data()
         
         if df is not None:
-            # Filter logic from 0_Prepare_AIS.py
+            # Filter nearby vessels
             nearby = df[
                 (df['LAT'] > lat - search_radius) & 
                 (df['LAT'] < lat + search_radius) & 
@@ -290,7 +265,7 @@ def get_ais_anomalies(lat, lon, search_radius=2.0):
                 })
             return suspects
         else:
-            # Fallback for Demo
+            # Fallback for Demo (Kept for demonstration if data file is missing)
             return [
                 {"name": "SIMULATED TANKER A", "mmsi": 999123456, "speed": 0.2, "status": "STOPPED"},
                 {"name": "CARGO SHIP B", "mmsi": 888123456, "speed": 14.5, "status": "MOVING"},
@@ -298,12 +273,62 @@ def get_ais_anomalies(lat, lon, search_radius=2.0):
     except Exception:
         return []
 
+@st.cache_data
+def load_rescue_stations():
+    """
+    NEW: Loads and caches a simulated list of rescue/response stations 
+    for the simulated spill location (Gulf of Mexico area).
+    """
+    # Data structure: Name, Lat, Lon
+    station_data = [
+        {"Name": "USCG Sector New Orleans", "Lat": 29.95, "Lon": -90.07},
+        {"Name": "Port Fourchon Rapid Response", "Lat": 29.17, "Lon": -90.20},
+        {"Name": "Galveston Coast Guard Base", "Lat": 29.30, "Lon": -94.79},
+        {"Name": "Mobile Bay USCG", "Lat": 30.27, "Lon": -88.00},
+        {"Name": "Corpus Christi SAR", "Lat": 27.78, "Lon": -97.39},
+    ]
+    return pd.DataFrame(station_data)
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """
+    NEW: Calculates the great-circle distance (in kilometers) between two
+    points on the earth specified in decimal degrees.
+    """
+    R = 6371  # Radius of Earth in kilometers
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    return c * R
+
+def find_nearest_station(spill_lat, spill_lon):
+    """
+    NEW: Finds the nearest rescue station to the spill coordinates.
+    """
+    stations_df = load_rescue_stations()
+    
+    if stations_df.empty:
+        return None
+
+    # Calculate distance to all stations using the Haversine formula
+    stations_df['Distance_km'] = stations_df.apply(
+        lambda row: haversine_distance(spill_lat, spill_lon, row['Lat'], row['Lon']), 
+        axis=1
+    )
+    
+    # Get the row with the minimum distance
+    nearest_station = stations_df.iloc[stations_df['Distance_km'].idxmin()]
+    
+    return nearest_station
+
 def load_demo_image():
     """
-    Intelligently finds a random image from the data folder to use as a demo.
-    Prevents the 'fake circle' issue.
+    Finds a random image from the data folder to use as a demo.
     """
-    # List of possible paths where your images might be stored
     possible_paths = [
         "data/test/images", 
         "../data/test/images",
@@ -337,7 +362,7 @@ def render_sidebar():
         if model:
             st.success(f"Model Loaded: {os.path.basename(MODEL_PATH)}")
         else:
-            st.warning("Running in DEMO MODE")
+            st.warning("Running in **DEMO MODE**")
             st.caption("Real model file not found.")
             
         st.markdown("---")
@@ -348,10 +373,10 @@ def render_sidebar():
         
         # Settings
         st.subheader("Parameters")
-        threshold = st.slider("Detection Sensitivity", 0.0, 1.0, 0.05, 0.01, 
+        threshold = st.slider("**Detection Sensitivity**", 0.0, 1.0, 0.05, 0.01, 
                             help="Lower values detect fainter spills but may increase noise.")
         
-        alpha = st.slider("Overlay Opacity", 0.1, 1.0, 0.6)
+        alpha = st.slider("**Overlay Opacity**", 0.1, 1.0, 0.6)
         
         # Inject Tip
         st.info(random.choice(TIPS_AND_TRICKS))
@@ -361,19 +386,18 @@ def render_sidebar():
 def main():
     # A. Header Section
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    col_h1, col_h2 = st.columns([3, 1])
-    with col_h1:
-        st.title("🛢️ Oil Spill Forensic System")
-        st.caption("Satellite SAR Analysis & Environmental Damage Assessment")
-    with col_h2:
-        st.markdown(f"<div style='text-align:right; color:#64748b;'><b>v2.0.3 (Fast)</b><br>{time.strftime('%Y-%m-%d')}</div>", unsafe_allow_html=True)
+    st.title("🛢️ Oil Spill Forensic System")
+    st.caption("Satellite SAR Analysis & Environmental Damage Assessment")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # B. Sidebar & Configuration
     uploaded_file, threshold, alpha, model = render_sidebar()
 
-    # C. Main Layout
-    if uploaded_file is not None or st.session_state.get('demo_active', False):
+    # C. Main Layout Logic
+    if 'demo_active' not in st.session_state:
+        st.session_state['demo_active'] = False
+        
+    if uploaded_file is not None or st.session_state['demo_active']:
         
         # Prepare Image
         if uploaded_file:
@@ -382,11 +406,12 @@ def main():
             input_image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
             filename = uploaded_file.name
+            st.session_state['demo_active'] = False # Disable demo if a real file is uploaded
         else:
             # DEMO MODE: Load a REAL image from the disk
             demo_path, demo_filename = load_demo_image()
             
-            if demo_path:
+            if demo_path and st.session_state['demo_active']:
                 input_image = cv2.imread(demo_path)
                 if input_image is not None:
                     input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
@@ -396,11 +421,12 @@ def main():
                     input_image = np.zeros((256, 256, 3), dtype=np.uint8)
                     filename = "Error reading demo image"
             else:
-                # No images found in data folders - Fallback to Synthetic
+                # Fallback to Synthetic
                 input_image = np.zeros((256, 256, 3), dtype=np.uint8)
                 cv2.putText(input_image, "NO IMAGES FOUND", (20, 128), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                 filename = "No images in 'data/test/images'"
+                st.session_state['demo_active'] = False # Disable demo if no image is found
 
         # D. Processing Block
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -415,7 +441,6 @@ def main():
                 # Step 1: Preprocessing
                 status_text.text("Preprocessing image...")
                 progress_bar.progress(25)
-                # OPTIMIZATION: Removed time.sleep(0.3)
                 
                 # Step 2: Inference
                 status_text.text("Running Neural Network Inference...")
@@ -424,24 +449,28 @@ def main():
                 if model:
                     img_resized, mask, raw_prob = run_inference(model, input_image, threshold)
                 else:
-                    # SIMULATED INFERENCE (If model is missing but we have a real image)
+                    # SIMULATED INFERENCE
                     img_resized = cv2.resize(input_image, (256, 256))
                     raw_prob = np.zeros((256, 256), dtype=np.float32)
                     
-                    # Create a fake detection in the center (just for demo visualization)
+                    # Create a fake detection in the center
                     cv2.circle(raw_prob, (128,128), 40, 0.8, -1) 
-                    mask = (raw_prob > 0.5).astype(np.uint8)
+                    mask = (raw_prob > threshold).astype(np.uint8) # Use threshold here
                     
-                    # OPTIMIZATION: Removed time.sleep(1) here as well
-
                 progress_bar.progress(75)
 
                 # Step 3: Analysis
-                status_text.text("Calculating severity and checking AIS data...")
+                status_text.text("Calculating severity and checking AIS and infrastructure data...") # UPDATED TEXT
                 damage_report = analyze_damage(mask)
                 
-                # AIS correlation (Simulated location for now)
-                suspects = get_ais_anomalies(28.5, -90.5) 
+                # Spill Location (Simulated for this demo - Gulf of Mexico)
+                SPILL_LAT, SPILL_LON = 28.5, -90.5 # Defined coordinates for use below
+                
+                # AIS correlation (Simulated location - Gulf of Mexico)
+                suspects = get_ais_anomalies(SPILL_LAT, SPILL_LON) 
+                
+                # NEW: Find Nearest Rescue Station
+                nearest_station_data = find_nearest_station(SPILL_LAT, SPILL_LON)
 
                 progress_bar.progress(100)
                 status_text.empty()
@@ -457,11 +486,12 @@ def main():
                 
                 # Create Overlay
                 mask_vis = np.zeros_like(img_resized)
+                # Ensure mask is scaled up if needed, though it should be 256x256
                 mask_vis[:, :, 0] = mask * 255 # Red channel for oil
                 overlay = cv2.addWeighted(img_resized, 1.0, mask_vis, alpha, 0)
 
                 with c1:
-                    st.image(img_resized, caption=f"Input: {filename}", use_container_width=True)
+                    st.image(img_resized, caption=f"Input: **{filename}**", use_container_width=True)
                 with c2:
                     st.image(mask * 255, caption="Binary Segmentation Mask", use_container_width=True)
                 with c3:
@@ -473,14 +503,54 @@ def main():
                 m1, m2, m3, m4 = st.columns(4)
                 m1.metric("Detected Oil Pixels", f"{damage_report['pixels']:,}")
                 m2.metric("Spill Area", f"{damage_report['area_km2']:.4f} km²")
-                m3.metric("Model Confidence", f"{np.max(raw_prob)*100:.1f}%")
-                m4.metric("Process Latency", "Instant (Optimized)")
+                m3.metric("Max Probability", f"{np.max(raw_prob)*100:.1f}%")
+                m4.metric("Process Latency", "**Instant**")
                 
-                # 4. AIS Data Table
+                # NEW: Operational Infrastructure Section
+                st.markdown("### 🗺️ Operational Infrastructure") 
+                
+                if nearest_station_data is not None:
+                    # Combine spill and station data for map visualization
+                    map_data = pd.DataFrame({
+                        'lat': [SPILL_LAT, nearest_station_data['Lat']],
+                        'lon': [SPILL_LON, nearest_station_data['Lon']],
+                        'size': [100, 50], # Visual difference
+                        'color': ['#ff0000', '#0000ff'], # Red for spill, Blue for station
+                        'name': ['Oil Spill Location', nearest_station_data['Name']]
+                    })
+                    
+                    n1, n2 = st.columns([1, 2])
+                    
+                    with n1:
+                         st.metric(
+                            label="Closest Response Base",
+                            value=nearest_station_data['Name'],
+                            delta=f"{nearest_station_data['Distance_km']:.1f} km away"
+                        )
+                         st.caption(f"Coordinates: ({nearest_station_data['Lat']:.2f}, {nearest_station_data['Lon']:.2f})")
+
+                    with n2:
+                        st.caption("Map: Red pin is Spill, Blue pin is Nearest Station.")
+                        # Use st.map to display the location
+                        st.map(map_data, 
+                               latitude='lat', 
+                               longitude='lon', 
+                               color='color', # Map does not natively support color coding for points
+                               zoom=8, 
+                               use_container_width=True) 
+
+                    st.write("---")
+                else:
+                    st.warning("Could not load rescue station data.")
+                
+                
+                # 4. AIS Data Table (Moved after infrastructure)
                 with st.expander("🚢 Nearby Vessel Activity (AIS Data)", expanded=True):
                     if suspects:
-                        st.dataframe(pd.DataFrame(suspects), use_container_width=True)
-                        st.caption("⚠️ Vessels with 'STOPPED' status near the spill coordinates are primary suspects.")
+                        # Only show name, mmsi, speed, status
+                        suspects_df = pd.DataFrame(suspects)[['name', 'mmsi', 'speed', 'status']]
+                        st.dataframe(suspects_df, use_container_width=True)
+                        st.caption("⚠️ Vessels with '**STOPPED**' status near the spill coordinates are primary suspects.")
                     else:
                         st.info("No vessels detected in the immediate vicinity.")
 
@@ -503,7 +573,7 @@ def main():
             st.info("👈 Upload an image and click 'Run Forensic Analysis' to start.")
             col_ph1, col_ph2 = st.columns(2)
             with col_ph1:
-                st.image(input_image, caption=f"Preview: {filename}", width=300)
+                st.image(input_image, caption=f"Preview: **{filename}**", width=300)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
