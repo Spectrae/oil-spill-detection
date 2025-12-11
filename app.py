@@ -41,8 +41,8 @@ st.markdown("""
     }
     
     .stApp {
-        /* Kept the background gradient */
-        background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+        /* Background gradient tuned for your glass cards */
+        background: linear-gradient(135deg, #ffe1d6 0%, #ffb6c1 100%);
         background-attachment: fixed;
     }
 
@@ -69,7 +69,16 @@ st.markdown("""
         max-width: 1400px;
     }
 
-    /* 3. GLASSMORPHISM CARDS */
+    /* 3A. HERO HEADER (NO WHITE BAR) */
+    .hero-card {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+
+    /* 3B. GLASSMORPHISM CARDS (for the rest of the page) */
     .glass-card {
         background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(16px);
@@ -384,8 +393,8 @@ def render_sidebar():
         return upload, threshold, alpha, model
 
 def main():
-    # A. Header Section
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    # A. Header Section (now using hero-card without glass background)
+    st.markdown('<div class="hero-card">', unsafe_allow_html=True)
     st.title("🛢️ Oil Spill Forensic System")
     st.caption("Satellite SAR Analysis & Environmental Damage Assessment")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -460,11 +469,11 @@ def main():
                 progress_bar.progress(75)
 
                 # Step 3: Analysis
-                status_text.text("Calculating severity and checking AIS and infrastructure data...") # UPDATED TEXT
+                status_text.text("Calculating severity and checking AIS and infrastructure data...")
                 damage_report = analyze_damage(mask)
                 
                 # Spill Location (Simulated for this demo - Gulf of Mexico)
-                SPILL_LAT, SPILL_LON = 28.5, -90.5 # Defined coordinates for use below
+                SPILL_LAT, SPILL_LON = 28.5, -90.5
                 
                 # AIS correlation (Simulated location - Gulf of Mexico)
                 suspects = get_ais_anomalies(SPILL_LAT, SPILL_LON) 
@@ -478,22 +487,30 @@ def main():
                 # --- RESULTS DISPLAY ---
                 
                 # 1. Severity Banner
-                st.markdown(f'<div class="severity-box {damage_report["css_class"]}">{damage_report["message"]}</div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="severity-box {damage_report["css_class"]}">'
+                    f'{damage_report["message"]}</div>',
+                    unsafe_allow_html=True
+                )
                 st.write("")
 
                 # 2. Visuals
                 c1, c2, c3 = st.columns(3)
                 
                 # Create Overlay
-                mask_vis = np.zeros_like(img_resized)
-                # Ensure mask is scaled up if needed, though it should be 256x256
-                mask_vis[:, :, 0] = mask * 255 # Red channel for oil
+                mask_vis = np.zeros_like(img_resized, dtype=np.uint8)
+                mask_vis[:, :, 0] = mask * 255   # red only
+                mask_vis[:, :, 1] = 0            # green
+                mask_vis[:, :, 2] = 0            # blue
+
                 overlay = cv2.addWeighted(img_resized, 1.0, mask_vis, alpha, 0)
+
 
                 with c1:
                     st.image(img_resized, caption=f"Input: **{filename}**", use_container_width=True)
                 with c2:
-                    st.image(mask * 255, caption="Binary Segmentation Mask", use_container_width=True)
+                    binary_mask_img = (mask * 255).astype("uint8")
+                    st.image(binary_mask_img, caption="Binary Segmentation Mask", use_container_width=True)
                 with c3:
                     st.image(overlay, caption="Forensic Overlay (Red)", use_container_width=True)
 
@@ -510,34 +527,61 @@ def main():
                 st.markdown("### 🗺️ Operational Infrastructure") 
                 
                 if nearest_station_data is not None:
-                    # Combine spill and station data for map visualization
                     map_data = pd.DataFrame({
                         'lat': [SPILL_LAT, nearest_station_data['Lat']],
                         'lon': [SPILL_LON, nearest_station_data['Lon']],
-                        'size': [100, 50], # Visual difference
-                        'color': ['#ff0000', '#0000ff'], # Red for spill, Blue for station
+                        'size': [100, 50],
+                        'color': ['#ff0000', '#0000ff'],
                         'name': ['Oil Spill Location', nearest_station_data['Name']]
                     })
                     
                     n1, n2 = st.columns([1, 2])
                     
                     with n1:
-                         st.metric(
+                        st.metric(
                             label="Closest Response Base",
                             value=nearest_station_data['Name'],
                             delta=f"{nearest_station_data['Distance_km']:.1f} km away"
                         )
-                         st.caption(f"Coordinates: ({nearest_station_data['Lat']:.2f}, {nearest_station_data['Lon']:.2f})")
+                        st.caption(
+                            f"Coordinates: ({nearest_station_data['Lat']:.2f}, "
+                            f"{nearest_station_data['Lon']:.2f})"
+                        )
 
                     with n2:
                         st.caption("Map: Red pin is Spill, Blue pin is Nearest Station.")
-                        # Use st.map to display the location
-                        st.map(map_data, 
-                               latitude='lat', 
-                               longitude='lon', 
-                               color='color', # Map does not natively support color coding for points
-                               zoom=8, 
-                               use_container_width=True) 
+                        import pydeck as pdk
+
+                        # Define colors
+                        RED = [255, 0, 0]   # Spill
+                        BLUE = [0, 0, 255]  # Station
+
+                        map_data["color"] = map_data["name"].apply(lambda x: RED if "Spill" in x else BLUE)
+
+                        layer = pdk.Layer(
+                            "ScatterplotLayer",
+                            data=map_data,
+                            get_position='[lon, lat]',
+                            get_color='color',
+                            get_radius=8000,  # adjust radius for visibility
+                            pickable=True,
+                        )
+
+                        view_state = pdk.ViewState(
+                            latitude=SPILL_LAT,
+                            longitude=SPILL_LON,
+                            zoom=7,
+                            pitch=0,
+                        )
+
+                        st.pydeck_chart(
+                            pdk.Deck(
+                            layers=[layer],
+                            initial_view_state=view_state,
+                            tooltip={"text": "{name}"}
+                        )
+                    )
+
 
                     st.write("---")
                 else:
@@ -547,10 +591,12 @@ def main():
                 # 4. AIS Data Table (Moved after infrastructure)
                 with st.expander("🚢 Nearby Vessel Activity (AIS Data)", expanded=True):
                     if suspects:
-                        # Only show name, mmsi, speed, status
                         suspects_df = pd.DataFrame(suspects)[['name', 'mmsi', 'speed', 'status']]
                         st.dataframe(suspects_df, use_container_width=True)
-                        st.caption("⚠️ Vessels with '**STOPPED**' status near the spill coordinates are primary suspects.")
+                        st.caption(
+                            "⚠️ Vessels with '**STOPPED**' status near the spill "
+                            "coordinates are primary suspects."
+                        )
                     else:
                         st.info("No vessels detected in the immediate vicinity.")
 
@@ -579,11 +625,13 @@ def main():
 
     else:
         # LANDING STATE (No file loaded)
-        st.markdown('<div class="glass-card" style="text-align: center; padding: 60px;">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="glass-card" style="text-align: center; padding: 60px;">',
+            unsafe_allow_html=True
+        )
         st.subheader("Ready for Analysis")
         st.markdown("Please upload a Sentinel-1 SAR image from the sidebar.")
         
-        # Toggle for Demo Mode if no file is handy
         if st.button("🎲 Load Demo Data"):
             st.session_state['demo_active'] = True
             st.rerun()
@@ -593,3 +641,4 @@ def main():
 # --- ENTRY POINT ---
 if __name__ == "__main__":
     main()
+

@@ -111,6 +111,7 @@ Run the app through Streamlit's CLI (do NOT run with `/bin/python3 app.py`). Exa
 ```bash
 cd ~/oil-spill-detection
 source .venv/bin/activate      # ensure you're using the project's venv
+
 pip install -r requirements.txt    # only first time or when updating deps
 
 # If requirements already installed, ensure Streamlit is present
