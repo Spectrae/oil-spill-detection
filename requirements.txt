@@ -13,7 +13,7 @@ Pillow>=10.0.0
 # Deep Learning
 # (Pin TensorFlow carefully for compatibility)
 # -----------------------------------------
-tensorflow==2.16.1
+tensorflow
 
 # -----------------------------------------
 # Web App / UI
