@@ -460,9 +460,6 @@ The following table summarizes the experimental findings after training both arc
 ## Graphs and Visualizations
 
 
-
-**GitHub README Image Embedding Guide:**
-
 All generated graphs are saved in the `assets/graphs/` directory of this repository. Below are the comparative graphs generated during our experimental runs.
 
 
@@ -501,30 +498,27 @@ All generated graphs are saved in the `assets/graphs/` directory of this reposit
 
 ### Additional Metrics (Precision, Recall, F1, Accuracy)
 
-
-
 **Baseline U-Net Metrics**
 
-
-
-
+<p align="center">
+  <img src="assets/graphs/baseline_metrics.png"
+       alt="Baseline U-Net Metrics"
+       width="900"/>
+</p>
 
 **Sparse + U-Net Metrics**
 
-
-
-
+<p align="center">
+  <img src="assets/graphs/sparse_metrics.png"
+       alt="Sparse U-Net Metrics"
+       width="900"/>
+</p>
 
 **Observations and Interpretations:**
 
-
-
 * **Training Behavior:** While accuracy remains artificially high for both models (due to the massive amount of background ocean pixels), the F1 score reveals the truth.
-
 * The **Baseline model** shows poor Precision and Recall, failing to reliably distinguish between SAR look-alikes and real spills.
-
 * The **Sparse model** maintains a tightly coupled, smoothly climbing Precision and Recall curve. This maximizes the overall F1 score and proves the efficacy of our model architecture and the elevated thresholding logic.
-
 
 
 ---
