@@ -224,13 +224,6 @@ MyDrive/
     │       └── vessel_data_clean.csv
 
     └── saved_models/
-
-        ├── checkpoints/
-
-        ├── trained_models/
-
-        └── outputs/
-
 ```
 
 
