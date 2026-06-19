@@ -1,5 +1,3 @@
-```markdown
-
 # SpillSense-AI Research Repository
 
 ## Oil Spill Segmentation Using Baseline U-Net and Sparse + U-Net Hybrid Architectures
@@ -144,7 +142,7 @@ The research relies on two distinct data modalities. To ensure reproducibility, 
 
 * **Why it was selected:** SAR is an active sensor that penetrates cloud cover and operates at night, making it the gold standard for continuous marine monitoring. This specific dataset provides the critical pixel-level annotations required for supervised semantic segmentation.
 
-* **Files used:** Satellite image files (`.jpg`/`.png`) and ground-truth label masks (`.png`).
+* **Files used:** Satellite image files (`.jpg`) and ground-truth label masks (`.png`).
 
 * **Placement:**
 
@@ -441,21 +439,14 @@ $$Mask = \begin{cases} 1, & p \ge 0.60 \\ 0, & p < 0.60 \end{cases}$$
 The following table summarizes the experimental findings after training both architectures for 20-40 epochs.
 
 
-| Metric                    |         Baseline U-Net (Pure Dice) |       Sparse + U-Net (Focal + Dice) |
-
-| ------------------------- | ---------------------------------- | ----------------------------------- |
-
-| **Training Loss**         | ~0.86 (Stagnated from ~0.97)       | ~0.40 (Smooth descent from ~0.90)   |
-
-| **Validation Loss**       | Highly erratic / Shallow descent   | Smooth asymptotic convergence       |
-
-| **IoU**                   | ~0.175 (Volatile, dropping to ~0)  | ~0.72 (Stable and climbing)         |
-
-| **Convergence Speed**     | Bottlenecked / Vanishing gradients | Rapid initial drop, deep minima     |
-
-| **Fit Quality**           | Severely Underfitting              | Excellent generalization / Good fit |
-
-| **Look-Alike Resistance** | Poor (Noise amplification)         | Excellent (Using T=0.60 threshold)  |
+| Metric | Baseline U-Net | Sparse + U-Net |
+|--------|----------------|----------------|
+| Training Loss | ~0.86 | ~0.40 |
+| Validation Loss | Erratic | Smooth convergence |
+| IoU | ~0.175 | ~0.72 |
+| Convergence Speed | Slow | Rapid |
+| Fit Quality | Underfitting | Good generalization |
+| Look-Alike Resistance | Poor | Excellent |
 
 
 
@@ -595,27 +586,14 @@ This repository successfully represents the experimental phase, enabling the fut
 This repo is maintained by **Rick Mondal** ([@Spectrae](https://github.com/Spectrae)) and the team as contributors.
 
 
------------------------------------------------------------------------------------------------------
-|      Name        |              Role              |                GitHub                         |
+| Name             | Role                    | GitHub                                                           |
+| ---------------- | ----------------------- | -----------------------------------------------------------------|
+| **Rick Mondal**  | Backend Developer       | [https://github.com/Spectrae](https://github.com/Spectrae)       |
+| **Aneesh Ghosh** | Research / Model Tuning | [https://github.com/levianeesh](https://github.com/levianeesh)   |
+| **Ritika Kundu** | Testing & Documentation | [https://github.com/ritikakundu](https://github.com/ritikakundu) |
+| **Shradha Gupta**| Data Cleaning / AIS     | [https://github.com/sgxlzel](https://github.com/sgxlzel)         |
 
-|------------------|--------------------------------|-----------------------------------------------|
-
-| **Rick Mondal**  | Backend Developer / Maintainer | [Spectrae](https://github.com/Spectrae)       |
-
-| **Aneesh Ghosh** | Research / Model Tuning        | [levianeesh](https://github.com/levianeesh)   |
-
-| **Ritika Kundu** | Testing & Documentation        | [ritikakundu](https://github.com/ritikakundu) |
-
-| **Shradha Gupta**| Data Cleaning / AIS            | [sgxlzel](https://github.com/sgxlzel)         |
------------------------------------------------------------------------------------------------------
 
 
 *(This project is licensed under the MIT License. Please ensure all model weight `.h5` / `.keras` files and large image datasets are kept out of version control.)*
 
-
-
-```
-
-
-
-```
