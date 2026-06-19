@@ -4,35 +4,35 @@
 
 
 
-> **Important Notice**
+**Important Notice**
 
 >
 
-> This repository is **not the final SpillSense-AI platform**.
+- This repository is **not the final SpillSense-AI platform**.
 
 >
 
-> This repository represents the **research, experimentation, model development, and evaluation phase** that serves as the technical foundation for the future **SpillSense-AI** automated oil spill monitoring system.
+- This repository represents the **research, experimentation, model development, and evaluation phase** that serves as the technical foundation for the future **SpillSense-AI** automated oil spill monitoring system.
 
 >
 
-> The primary purpose of this repository is to:
+The primary purpose of this repository is to:
 
 >
 
-> - Prepare and organize datasets
+  - Prepare and organize datasets
 
-> - Implement segmentation architectures
+  - Implement segmentation architectures
 
-> - Train and evaluate deep learning models
+  - Train and evaluate deep learning models
 
-> - Compare Baseline U-Net and Sparse + U-Net Hybrid models
+  - Compare Baseline U-Net and Sparse + U-Net Hybrid models
 
-> - Analyze experimental results
+  - Analyze experimental results
 
-> - Study performance characteristics and research findings
+  - Study performance characteristics and research findings
 
-> - Establish the groundwork for future integration into SpillSense-AI
+  - Establish the groundwork for future integration into SpillSense-AI
 
 
 
@@ -146,9 +146,9 @@ The research relies on two distinct data modalities. To ensure reproducibility, 
 
 * **Placement:**
 
-  * Images: `content/drive/MyDrive/Oil_Spill_Project/data/train/images`
+  * Images: `Google Drive/MyDrive/Oil_Spill_Project/data/train/images`
 
-  * Masks: `content/drive/MyDrive/Oil_Spill_Project/data/train/labels`
+  * Masks: `Google Drive/MyDrive/Oil_Spill_Project/data/train/labels`
 
 
 
@@ -162,7 +162,7 @@ The research relies on two distinct data modalities. To ensure reproducibility, 
 
 * **Files used:** `vessel_data_clean.csv` (post-preprocessing).
 
-* **Placement:** `content/drive/MyDrive/Oil_Spill_Project/data/ais_data/vessel_data_clean.csv`
+* **Placement:** `Google Drive/MyDrive/Oil_Spill_Project/data/ais_data/vessel_data_clean.csv`
 
 
 
@@ -203,7 +203,6 @@ Ensure your Google Drive perfectly mirrors this structure before execution:
 
 
 ```text
-
 MyDrive/
 
 └── Oil_Spill_Project/
@@ -231,8 +230,6 @@ MyDrive/
         ├── trained_models/
 
         └── outputs/
-
-
 
 ```
 
@@ -418,8 +415,13 @@ $$Accuracy = \frac{TP + TN}{TP + TN + FP + FN}$$
 
 
 
-$$Mask = \begin{cases} 1, & p \ge 0.60 \\ 0, & p < 0.60 \end{cases}$$
-
+$$
+Mask = 
+\begin{cases} 
+1, & p \ge 0.60 \\
+0, & p < 0.60 
+\end{cases}
+$$
 
 
 * **Variables:** $p$ is the model's raw predicted probability tensor.
