@@ -590,10 +590,10 @@ This repo is maintained by **Rick Mondal** ([@Spectrae](https://github.com/Spect
 
 | Name             | Role                    | GitHub                                                           |
 | ---------------- | ----------------------- | -----------------------------------------------------------------|
-| **Rick Mondal**  | Backend Developer       | [https://github.com/Spectrae](https://github.com/Spectrae)       |
-| **Aneesh Ghosh** | Research / Model Tuning | [https://github.com/levianeesh](https://github.com/levianeesh)   |
-| **Ritika Kundu** | Testing & Documentation | [https://github.com/ritikakundu](https://github.com/ritikakundu) |
-| **Shradha Gupta**| Data Cleaning / AIS     | [https://github.com/sgxlzel](https://github.com/sgxlzel)         |
+| **Rick Mondal**  | Backend Developer       | [@Spectrae](https://github.com/Spectrae)       |
+| **Aneesh Ghosh** | Research / Model Tuning | [@levianeesh](https://github.com/levianeesh)   |
+| **Ritika Kundu** | Testing & Documentation | [@ritikakundu](https://github.com/ritikakundu) |
+| **Shradha Gupta**| Data Cleaning / AIS     | [@/sgxlzel](https://github.com/sgxlzel)         |
 
 
 
